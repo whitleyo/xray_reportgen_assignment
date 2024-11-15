@@ -1,0 +1,24 @@
+name: xray_reportgen
+channels:
+  - pytorch
+  - conda-forge
+  - nvidia
+  - defaults
+dependencies:
+  - datasets
+  - einops
+  - jupyterlab
+  - numpy
+  - pandas
+  - peft
+  - pillow
+  - pip
+  - pip:
+    - green_score
+    - qwen-vl-utils
+  - python=3.8
+  - pytorch
+  - pytorch-cuda
+  - requests
+  - torchvision
+  - transformers 
