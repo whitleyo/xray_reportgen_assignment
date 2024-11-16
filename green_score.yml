@@ -1,4 +1,4 @@
-name: xray_reportgen
+name: green_score 
 channels:
   - pytorch
   - conda-forge
@@ -12,6 +12,7 @@ dependencies:
   - pip:
     - datasets
     - einops
+    - green-score
     - numpy
     - pandas
     - peft
