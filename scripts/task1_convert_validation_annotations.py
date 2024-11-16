@@ -15,7 +15,6 @@ image_dir = os.path.join(data_dir, 'images')
 token_dir = '../../github_tokens'
 
 
-
 ## Do Login
 
 token_file = os.path.join(token_dir, 'hugging_face_owhitley_token_nov_2024.txt')
@@ -44,52 +43,125 @@ pipe = pipeline(
 ## Setup json format and function to extract json from LLM response
 
 json_format_dict={
-    'lung': 'summarize any findings relevant to lung bere, leaving empty string if none',
-    'heart': 'summarize any findings relevant to heart here, leaving empty string if none',
-    'bone': 'summarize any findings relevant to bone here, leaving empty string if none',
-    'mediastinal': 'summarize any findings relevant to mediastinal here, leaving empty string if none',
-    'others': 'summarize any other findings here that are not relevant to lung, heart, bone or mediastinal, leaving empty string if none'
+    'lung': 'summary',
+    'heart': 'summary',
+    'bone': 'summary',
+    'mediastinal': 'summary',
+    'others': 'summary'
 }
 json_format_str=json.dumps(json_format_dict)
 
+## S
 
 def extract_json_from_response(input_text):
     """
     Function to extract json output from LLM prompt response
     """    
+    # strip out ```json and ``` as this is a common output.
+    # this is a pretty hacky way of dealing with it but if it works, great.
+    input_text = re.sub('```json', '', input_text)
+    input_text = re.sub('```', '', input_text)
+    # see if it's even json format
     try:
-        # strip out ```json and ``` as this is a common output.
-        # this is a pretty hacky way of dealing with it but if it works, great.
-        input_text = re.sub('```json', '', input_text)
-        input_text = re.sub('```', '', input_text)
-        # see if it's even json format
         json_data = json.loads(input_text)
-        try:
-            # Ensure that all required keys are present and are of right datatype
-            assert type(json_data['lung']) is str
-            assert type(json_data['heart']) is str
-            assert type(json_data['bone']) is str
-            assert type(json_data['mediastinal']) is str
-            assert type(json_data['others']) is str
-        except:
-            raise ValueError('invalid json keys or values')
-        return json_data
     except json.JSONDecodeError as e:
         print(f"Invalid JSON string: {e}")
         print(input_text)
-        raise ValueError('Invalid JSON String')
-            
+        return 'invalid json'
+    
+    try:
+        # Ensure that all required keys are present and are of right datatype
+        assert type(json_data['lung']) is str
+        assert type(json_data['heart']) is str
+        assert type(json_data['bone']) is str
+        assert type(json_data['mediastinal']) is str
+        assert type(json_data['others']) is str
+    except:
+        return 'invalid keys or values'
+    return json_data
 
+system_prompt = """
+You are a researcher tasked with summarizing doctor reports (in input).
+Report any findings if any for relevant tissues indicated by keys in json output.
+If there are no relevant findings for a given tissue, do not report anything.
+Do not confuse results present in one tissue as pertaining to another tissue.
+
+### Example 1 ###
+report: 
+'The cardiomediastinal silhouette and pulmonary vasculature are within normal limits in size. The
+lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural
+effusion. There are mild degenerative endplate changes in the thoracic spine. There are no acute
+bony findings.'
+output: 
+{{
+'lung': 'Lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural effusion. Pulmonary vasculature are within normal limits in size.',
+'heart': 'Cardiac silhouette within normal limits in size.',
+'mediastinal': 'Mediastinal contours within normal limits in size.',
+'bone': 'Mild degenerative endplate changes in the thoracic spine. No acute bony findings.',
+'others': ''
+}}
+
+### Example2 ###
+report:
+'Bony structures are intact. Cardiac contours are within normal limits. The lungs are clear. Mediastinal contours appear to be within normal limits.'
+output:
+{{
+'lung': 'The lungs are clear',
+'heart': 'Cardiac contours are within normal limits',
+'mediastinal': 'Mediastinal contours within normal limits in size.',
+'bone': 'Bony structures are intact',
+'others': ''
+}}
+### Example 3 ###
+report:
+'The heart is abnormal structurally. Mediastinal contours are outside normal limits, which is of concern. The XXXX appears intact'
+output:
+{{
+'lung': '',
+'heart': 'Heart has abnormal structure.',
+'mediastinal': 'Mediastinal contours are outside normal limits.',
+'bone': '',
+'others': 'The XXXX appears intact'
+}}
+### Example 4 ###
+report:
+'The lung is abnormal structurally, with large contusions. Mediastinal contours are outside normal limits, which is of concern. The XXXX appears intact'
+output:
+{{
+'lung': 'Lung has abnormal structure with large contusions',
+'heart': '',
+'mediastinal': 'Mediastinal contours are outside normal limits.',
+'bone': '',
+'others': 'The XXXX appears intact'
+}}
+### Example 5 ###
+report:
+'The spine and the ribs appear to be malformed. Heart broadly appears normal, suprisingly.'
+output:
+{{
+'lung': '',
+'heart': 'Heart appears normal',
+'mediastinal': '',
+'bone': 'The spine and the ribs appear to be malformed',
+'others': ''
+}}
+
+Return all output in the following json format:
+
+{}
+
+""".format(json_format_str)
+            
 ## loop through the validation set, modifying entries 
 n_items_val = len(data['val'])
 max_tries=10
 for i in range(n_items_val):
+    print('####################################################')
     print("Running llama for validation set item {} of {}".format(str(i+1), str(n_items_val)))
     val_i = data['val'][i]
     # we pop out original response
     original_report_i = val_i.pop('original_report')
-    user_prompt = "Given the following report in parentheses ({}), create a json report with tissue relevant information separated by key as in the following format: {}.".format(original_report_i, json_format_str)
-    system_prompt = "You are a chatbot that given a string of text returns a summary report in the requested json format. Do NOT return code or markdown, and strictly output json format as follows:  ({}). Only use valid json.".format(json_format_str)
+    user_prompt = "Summarize following report in parentheses ({}).".format(original_report_i)
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
@@ -100,10 +172,34 @@ for i in range(n_items_val):
     )
     # extract json
     content_result = outputs[0]['generated_text'][2]['content']
+    
     max_tries = 100
     for j in range(max_tries + 1):
+        print("original report: {}".format(original_report_i))
         try:
-            json_out_i = extract_json_from_response(content_result)
+            try:
+                json_out_i = extract_json_from_response(content_result)
+                print("json extraction result: {}".format(json_out_i))
+                assert type(json_out_i) is dict
+            except:
+                if json_out_i is str:
+                    if json_out_i == 'invalid json':
+                        try:
+                            print('attempting appending of curly brace to end.')
+                            # try correcting for the most common error, which is forgetting an end bracket.
+                            # this is hacky but should deal with majority of errors
+                            content_result_mod = content_result + '}'
+                            json_out_i = extract_json_from_response(content_result_mod)
+                        except:
+                            # raise exception
+                            raise ValueError('content result not fixed by adding end bracket, submit modified query')
+                    else:
+                        raise ValueError('content result could not have valid json extracted, reason: {}'.format(json_out_i))
+                else:
+                    # just set json_out_i to invalid json.
+                    json_out_i = 'invalid json'
+                    raise ValueError('unknown output from extract_json_from_response. suggest debugging that function.')
+                    
             print('succeeded after {} tries'.format(str(j + 1)))
             val_i['report'] = json_out_i
             break
@@ -111,8 +207,7 @@ for i in range(n_items_val):
             if j == max_tries:
                 raise ValueError('Reached Max Tries')
                 print(content_result)
-            user_prompt = "Given the following report in parentheses ({}), and the following incorrectly formatted json report ({}) return a correctly formatted json report, as in the follwing format: {}. return only valid json.".format(original_report_i, content_result, json_format_str)
-            system_prompt = "You are a chatbot that given a string of text returns a summary report in the requested json format. Do NOT return code or markdown, and strictly follow the json format in parentheses ({}). Only use valid json".format(json_format_str)
+            user_prompt = "Given the  following report in parentheses ({0}), I received the following incorrect response: '{1}'.  Reason: '{2}'. For the aforementioned report, return a correctly formatted json output that summarizes results in the report, as in the following format: {3}. DO NOT RETURN CODE or instructions. Output must start with {{ and end with }}. return only valid json.".format(original_report_i, content_result, json_out_i, json_format_str)
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -127,7 +222,7 @@ for i in range(n_items_val):
             
 ## Save Output
 
-output_dir = os.path.join(results, 'task1_convert_validation_annotations')
+output_dir = os.path.join('../results', 'task1_convert_validation_annotations')
 if not os.path.exists(output_dir):
     os.mkdir(output_dir)
 
