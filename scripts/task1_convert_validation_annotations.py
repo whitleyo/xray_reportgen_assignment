@@ -38,16 +38,17 @@ pipe = pipeline(
     model=model_id,
     torch_dtype=torch.bfloat16,
     device_map="auto",
+    temperature=0.5
 )
 
 ## Setup json format and function to extract json from LLM response
 
 json_format_dict={
-    'lung': 'summary',
-    'heart': 'summary',
-    'bone': 'summary',
-    'mediastinal': 'summary',
-    'others': 'summary'
+    'lung': 'summary of lung category related findings or leave blank if no lung related findings.',
+    'heart': 'summary of heart category or leave blank if no heart related findings.',
+    'bone': 'summary of category related findings or empty leave blank if no bone related findings.',
+    'mediastinal': 'summary of mediastinal category related findings or leave blank if no mediastinal related findings.',
+    'others': 'summary of any other findings that are NOT lung related, NOT heart related, NOT bone related, NOT mediastinal related. Leave blank if no findings.'
 }
 json_format_str=json.dumps(json_format_dict)
 
@@ -71,11 +72,12 @@ def extract_json_from_response(input_text):
     
     try:
         # Ensure that all required keys are present and are of right datatype
-        assert type(json_data['lung']) is str
-        assert type(json_data['heart']) is str
-        assert type(json_data['bone']) is str
-        assert type(json_data['mediastinal']) is str
-        assert type(json_data['others']) is str
+        all_relevant_keys = ['lung', 'heart', 'bone', 'mediastinal', 'others']
+        for key_name in json_data.keys():
+            assert key_name in all_relevant_keys
+            assert type(json_data[key_name]) is str
+        for key_name in all_relevant_keys:
+            assert key_name in json_data.keys()
     except:
         return 'invalid keys or values'
     return json_data
@@ -83,70 +85,138 @@ def extract_json_from_response(input_text):
 system_prompt = """
 You are a researcher tasked with summarizing doctor reports (in input).
 Report any findings if any for relevant tissues indicated by keys in json output.
+
+Common words and prefixes associated with each category:
+
+lung: Lungs, lung, pleural, pneumothorax, pneumo, pleuro
+heart: cardiac, cardio, heart, cardiomediastinal, cardiomediastinum, aorta, vein, vasculature
+bone: bone, bony, spine, humerus, tibula, fibula, rib, osseous, osteo
+mediastinal: mediastinal, cardiomediastinal, mediastinum
+
+Some extra instructions:
+
 If there are no relevant findings for a given tissue, do not report anything.
-Do not confuse results present in one tissue as pertaining to another tissue.
+Do not return chatbot style output.
+Do not report false information.
+Only report on information present in the input.
+Keep text entries in json as close to the original text as possible.
+Do not repeat findings in summary for one tissue in summary for another tissue.
+
+Examples
 
 ### Example 1 ###
-report: 
-'The cardiomediastinal silhouette and pulmonary vasculature are within normal limits in size. The
-lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural
-effusion. There are mild degenerative endplate changes in the thoracic spine. There are no acute
-bony findings.'
-output: 
-{{
-'lung': 'Lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural effusion. Pulmonary vasculature are within normal limits in size.',
-'heart': 'Cardiac silhouette within normal limits in size.',
-'mediastinal': 'Mediastinal contours within normal limits in size.',
-'bone': 'Mild degenerative endplate changes in the thoracic spine. No acute bony findings.',
-'others': ''
-}}
-
-### Example2 ###
-report:
-'Bony structures are intact. Cardiac contours are within normal limits. The lungs are clear. Mediastinal contours appear to be within normal limits.'
+input: 
+'The heart is folded. Lungs appear distorted'
 output:
 {{
-'lung': 'The lungs are clear',
-'heart': 'Cardiac contours are within normal limits',
-'mediastinal': 'Mediastinal contours within normal limits in size.',
-'bone': 'Bony structures are intact',
-'others': ''
+    'lung': 'Lungs appear distorted',
+    'heart': 'The heart is folded'
+    'bone': '',
+    'mediastinal': '',
+    'others': ''
+}}
+### Example 2 ###
+input: 
+'The pulmonary artery appears to have a small tear, which is alarming. Lungs appear normal in size. Spinal fracture apparent, likely from blunt trauma. Mediastinum has normal curvature'
+output:
+{{
+    'lung': 'Lungs appear normal in size',
+    'heart': 'The pulmonary artery appears to have a small tear'
+    'bone': 'Spinal fracture likely from blunt trauma',
+    'mediastinal': 'Mediastinum has normal curvature',
+    'others': ''
 }}
 ### Example 3 ###
-report:
-'The heart is abnormal structurally. Mediastinal contours are outside normal limits, which is of concern. The XXXX appears intact'
+input: 
+'The aorta is enlarged. Left lung has multiple opacities. No abnormalities in right lung. There is a broken rib that may have punctured the left lung. Mediastinum is disfigured. The XXXX appears normal'
 output:
 {{
-'lung': '',
-'heart': 'Heart has abnormal structure.',
-'mediastinal': 'Mediastinal contours are outside normal limits.',
-'bone': '',
-'others': 'The XXXX appears intact'
+    'lung': 'Left lung has multiple opacities. No abnormalities in right lung. The left lung appears punctured, possibly by a rib',
+    'heart': 'The aorta is enlarged'
+    'bone': 'Broken rib that may have punctured left lung',
+    'mediastinal': 'Mediastinum is disfigured',
+    'others': 'The XXXX appears normal'
 }}
 ### Example 4 ###
-report:
-'The lung is abnormal structurally, with large contusions. Mediastinal contours are outside normal limits, which is of concern. The XXXX appears intact'
+input: 
+'Mediastinal curvature normal. Cardiac muscle appears atrophied. Patient appears to have osteoperosis. The XXXX is hypertrophied'
 output:
 {{
-'lung': 'Lung has abnormal structure with large contusions',
-'heart': '',
-'mediastinal': 'Mediastinal contours are outside normal limits.',
-'bone': '',
-'others': 'The XXXX appears intact'
+    'lung': '',
+    'heart': 'Cardiac muscle appears atrophied'
+    'bone': 'Patient appears to have osteoperosis.',
+    'mediastinal': 'Mediastinal curvature normal',
+    'others': 'The XXXX is hypertrophied'
 }}
 ### Example 5 ###
-report:
-'The spine and the ribs appear to be malformed. Heart broadly appears normal, suprisingly.'
+input: 
+'The XXXX is normal, and there appears to be pleural effusion. The cardiomediastinal tissue is damaged.'
 output:
 {{
-'lung': '',
-'heart': 'Heart appears normal',
-'mediastinal': '',
-'bone': 'The spine and the ribs appear to be malformed',
-'others': ''
+    'lung': 'There is pleural effusion',
+    'heart': ''
+    'bone': '',
+    'mediastinal': 'The cardiomediastinal tissue is damaged.',
+    'others': 'The XXXX is hypertrophied'
+}}
+### Example 6 ###
+input: 
+'Heart is hypertrophied and size is enlarged. Lungs appear distorted. Soft tissues appear intact'
+output:
+{{
+    'lung': 'Lungs appear distorted',
+    'heart': 'Heart is hypertrophied and size is enlarged.'
+    'bone': '',
+    'mediastinal': '',
+    'others': 'Soft tissues appear intact.'
+}}
+### Example 7 ###
+input: 
+'Heart size is enlarged. Aorta is crushed. Lungs appear distorted. There are osseous malformations present. Soft tissues appear intact'
+output:
+{{
+    'lung': 'Lungs appear distorted',
+    'heart': 'Heart size is enlarged. Aorta is crushed'
+    'bone': 'Osseous malformations present',
+    'mediastinal': '',
+    'others': 'Soft tissues appear intact.'
+}}
+### Example 8 ###
+input: 
+'Heart size is enlarged. Aorta is crushed. The pulmonary XXXX is ruptured. There are osseous malformations present. Soft tissues appear intact'
+output:
+{{
+    'lung': 'The pulmonary XXXX is ruptured',
+    'heart': 'Heart size is enlarged. Aorta is crushed'
+    'bone': 'Osseous malformations present',
+    'mediastinal': '',
+    'others': 'Soft tissues appear intact.'
+}}
+### Example 9 ###
+input: 
+'Heart size is enlarged. Cardiomediastinal silhouette appears normal. The pulmonary XXXX is ruptured. There are osseous malformations present. The XXXX appears intact'
+output:
+{{
+    'lung': 'The pulmonary XXXX is ruptured',
+    'heart': 'Heart size is enlarged. Cardiomediastinal silhouette appears normal'
+    'bone': 'Osseous malformations present',
+    'mediastinal': 'Cardiomediastinal silhouette appears normal',
+    'others': 'The XXXX intact.'
+}}
+### Example 10 ###
+input: 
+'Heart size is enlarged. Cardiomediastinal silhouette appears normal. Pleural fluids visible. There are osseous malformations present. The XXXX appears intact'
+output:
+{{
+    'lung': 'Pleural fluids visible',
+    'heart': 'Heart size is enlarged. Cardiomediastinal silhouette appears normal'
+    'bone': 'Osseous malformations present',
+    'mediastinal': 'Cardiomediastinal silhouette appears normal',
+    'others': 'The XXXX intact.'
 }}
 
-Return all output in the following json format:
+
+Return all output strictly following this json format:
 
 {}
 
@@ -175,6 +245,7 @@ for i in range(n_items_val):
     
     max_tries = 100
     for j in range(max_tries + 1):
+        print('try {}'.format(j+1))
         print("original report: {}".format(original_report_i))
         try:
             try:
@@ -182,7 +253,7 @@ for i in range(n_items_val):
                 print("json extraction result: {}".format(json_out_i))
                 assert type(json_out_i) is dict
             except:
-                if json_out_i is str:
+                if type(json_out_i) is str:
                     if json_out_i == 'invalid json':
                         try:
                             print('attempting appending of curly brace to end.')
@@ -190,6 +261,7 @@ for i in range(n_items_val):
                             # this is hacky but should deal with majority of errors
                             content_result_mod = content_result + '}'
                             json_out_i = extract_json_from_response(content_result_mod)
+                            assert type(json_out_i) is dict
                         except:
                             # raise exception
                             raise ValueError('content result not fixed by adding end bracket, submit modified query')
