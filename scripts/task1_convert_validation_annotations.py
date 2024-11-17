@@ -38,7 +38,7 @@ pipe = pipeline(
     model=model_id,
     torch_dtype=torch.bfloat16,
     device_map="auto",
-    temperature=0.4
+    temperature=0.5
 )
 
 ## Setup json format and function to extract json from LLM response
@@ -46,7 +46,7 @@ pipe = pipeline(
 json_format_dict={
     'lung': 'summary of lung category related findings or leave blank if no lung related findings.',
     'heart': 'summary of heart category or leave blank if no heart related findings.',
-    'bone': 'summary of category related findings or empty leave blank if no bone related findings.',
+    'bone': 'summary of bone category related findings or leave blank if no bone related findings.',
     'mediastinal': 'summary of mediastinal category related findings or leave blank if no mediastinal related findings.',
     'others': 'summary of any other findings that are NOT lung related, NOT heart related, NOT bone related, NOT mediastinal related. Leave blank if no findings.'
 }
@@ -159,11 +159,21 @@ output:
 {{
 \"lung\": \"Lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural effusion. Pulmonary vasculature are within normal limits in size.\",
 \"heart\": "Cardiac silhouette within normal limits in size.\",
-\"mediastinal\": "Mediastinal contours within normal limits in size.",
+\"mediastinal\": "Mediastinal contours within normal limits in size.\",
 \"bone\": "Mild degenerative endplate changes in the thoracic spine. No acute bony findings.\",
-\"others\": ""
+\"others\": \"\"
 }}
-
+### Example 6 ###
+input:
+'Mild degenerative changes of the spine. Heart size within normal limits. No pleural effusion or pneumothorax. No focal air space opacity to suggest pneumonia. Mediastinum curvature within normal limits'
+output:
+{{
+\"lung\": \"No pleural effusion or pneumothorax. No focal air space opacity to suggest pneumonia.\",
+\"heart\": "Heart size within normal limits\",
+\"mediastinal\": "Mediastinum curvature within normal limits\",
+\"bone\": "Mild degenerative changes of the spine.\",
+\"others\": \"\"
+}}
 """.format(json_format_str)
             
 ## loop through the validation set, modifying entries 
