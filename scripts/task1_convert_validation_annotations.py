@@ -38,7 +38,7 @@ pipe = pipeline(
     model=model_id,
     torch_dtype=torch.bfloat16,
     device_map="auto",
-    temperature=0.5
+    temperature=0.4
 )
 
 ## Setup json format and function to extract json from LLM response
@@ -100,125 +100,69 @@ Do not return chatbot style output.
 Do not report false information.
 Only report on information present in the input.
 Keep text entries in json as close to the original text as possible.
-Do not repeat findings in summary for one tissue in summary for another tissue.
 
-Examples
+Return all output strictly following this json format:
+
+{}
+
+Examples:
 
 ### Example 1 ###
 input: 
-'The heart is folded. Lungs appear distorted'
+'The heart is folded. Lungs appear distorted. Pneumothro'
 output:
 {{
-    'lung': 'Lungs appear distorted',
-    'heart': 'The heart is folded'
-    'bone': '',
-    'mediastinal': '',
-    'others': ''
+    \"lung\": \"Lungs appear distorted\",
+    \"heart\": \"The heart is folded\",
+    \"bone\": \"\",
+    \"mediastinal\": \"\",
+    \"others\": \"\"
 }}
 ### Example 2 ###
 input: 
 'The pulmonary artery appears to have a small tear, which is alarming. Lungs appear normal in size. Spinal fracture apparent, likely from blunt trauma. Mediastinum has normal curvature'
 output:
 {{
-    'lung': 'Lungs appear normal in size',
-    'heart': 'The pulmonary artery appears to have a small tear'
-    'bone': 'Spinal fracture likely from blunt trauma',
-    'mediastinal': 'Mediastinum has normal curvature',
+    \"lung\": \"Lungs appear normal in size\",
+    \"heart\": \"The pulmonary artery appears to have a small tear\"
+    \"bone\": \"Spinal fracture likely from blunt trauma\",
+    \"mediastinal\": \"Mediastinum has normal curvature\",
     'others': ''
 }}
 ### Example 3 ###
 input: 
-'The aorta is enlarged. Left lung has multiple opacities. No abnormalities in right lung. There is a broken rib that may have punctured the left lung. Mediastinum is disfigured. The XXXX appears normal'
+'The aorta is enlarged. Pleural leakage. No abnormalities in right lung. There is a broken rib that may have punctured the left lung. Mediastinum is disfigured. The XXXX appears normal'
 output:
 {{
-    'lung': 'Left lung has multiple opacities. No abnormalities in right lung. The left lung appears punctured, possibly by a rib',
-    'heart': 'The aorta is enlarged'
-    'bone': 'Broken rib that may have punctured left lung',
-    'mediastinal': 'Mediastinum is disfigured',
-    'others': 'The XXXX appears normal'
+    \"lung\": \"Pleural leakage. No abnormalities in right lung. The left lung appears punctured, possibly by a rib\",
+    \"heart\": \"The aorta is enlarged\",
+    \"bone\": \"Broken rib that may have punctured left lung\",
+    \"mediastinal\": \"Mediastinum is disfigured\",
+    \"others\": \"The XXXX appears normal\"
 }}
 ### Example 4 ###
 input: 
-'Mediastinal curvature normal. Cardiac muscle appears atrophied. Patient appears to have osteoperosis. The XXXX is hypertrophied'
+'Mediastinal curvature normal. Cardiac muscle appears atrophied. Patient appears to have osteoperosis. Connective tissue is damaged'
 output:
 {{
-    'lung': '',
-    'heart': 'Cardiac muscle appears atrophied'
-    'bone': 'Patient appears to have osteoperosis.',
-    'mediastinal': 'Mediastinal curvature normal',
-    'others': 'The XXXX is hypertrophied'
+    \"lung\": \"\",
+    \"heart\": \"Cardiac muscle appears atrophied\",
+    \"bone\": \"Patient appears to have osteoperosis.\",
+    \"mediastinal\": \"Mediastinal curvature normal\",
+    \"others\": \"Connective tissue is damaged\"
 }}
+
 ### Example 5 ###
-input: 
-'The XXXX is normal, and there appears to be pleural effusion. The cardiomediastinal tissue is damaged.'
+input:
+'The cardiomediastinal silhouette and pulmonary vasculature are within normal limits in size. The lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural effusion. There are mild degenerative endplate changes in the thoracic spine. There are no acute bony findings.'
 output:
 {{
-    'lung': 'There is pleural effusion',
-    'heart': ''
-    'bone': '',
-    'mediastinal': 'The cardiomediastinal tissue is damaged.',
-    'others': 'The XXXX is hypertrophied'
+\"lung\": \"Lungs are mildly hypoinflated but grossly clear of focal airspace disease, pneumothorax, or pleural effusion. Pulmonary vasculature are within normal limits in size.\",
+\"heart\": "Cardiac silhouette within normal limits in size.\",
+\"mediastinal\": "Mediastinal contours within normal limits in size.",
+\"bone\": "Mild degenerative endplate changes in the thoracic spine. No acute bony findings.\",
+\"others\": ""
 }}
-### Example 6 ###
-input: 
-'Heart is hypertrophied and size is enlarged. Lungs appear distorted. Soft tissues appear intact'
-output:
-{{
-    'lung': 'Lungs appear distorted',
-    'heart': 'Heart is hypertrophied and size is enlarged.'
-    'bone': '',
-    'mediastinal': '',
-    'others': 'Soft tissues appear intact.'
-}}
-### Example 7 ###
-input: 
-'Heart size is enlarged. Aorta is crushed. Lungs appear distorted. There are osseous malformations present. Soft tissues appear intact'
-output:
-{{
-    'lung': 'Lungs appear distorted',
-    'heart': 'Heart size is enlarged. Aorta is crushed'
-    'bone': 'Osseous malformations present',
-    'mediastinal': '',
-    'others': 'Soft tissues appear intact.'
-}}
-### Example 8 ###
-input: 
-'Heart size is enlarged. Aorta is crushed. The pulmonary XXXX is ruptured. There are osseous malformations present. Soft tissues appear intact'
-output:
-{{
-    'lung': 'The pulmonary XXXX is ruptured',
-    'heart': 'Heart size is enlarged. Aorta is crushed'
-    'bone': 'Osseous malformations present',
-    'mediastinal': '',
-    'others': 'Soft tissues appear intact.'
-}}
-### Example 9 ###
-input: 
-'Heart size is enlarged. Cardiomediastinal silhouette appears normal. The pulmonary XXXX is ruptured. There are osseous malformations present. The XXXX appears intact'
-output:
-{{
-    'lung': 'The pulmonary XXXX is ruptured',
-    'heart': 'Heart size is enlarged. Cardiomediastinal silhouette appears normal'
-    'bone': 'Osseous malformations present',
-    'mediastinal': 'Cardiomediastinal silhouette appears normal',
-    'others': 'The XXXX intact.'
-}}
-### Example 10 ###
-input: 
-'Heart size is enlarged. Cardiomediastinal silhouette appears normal. Pleural fluids visible. There are osseous malformations present. The XXXX appears intact'
-output:
-{{
-    'lung': 'Pleural fluids visible',
-    'heart': 'Heart size is enlarged. Cardiomediastinal silhouette appears normal'
-    'bone': 'Osseous malformations present',
-    'mediastinal': 'Cardiomediastinal silhouette appears normal',
-    'others': 'The XXXX intact.'
-}}
-
-
-Return all output strictly following this json format:
-
-{}
 
 """.format(json_format_str)
             
