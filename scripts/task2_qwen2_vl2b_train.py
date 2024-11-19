@@ -26,7 +26,7 @@ from qwenl2_helpers import *
 top_image_dir = '../data/images'
 json_fpath = '../results/task1_convert_validation_annotations/annotation_quiz_all_modified.json'
 output_dir = '../results/task2_qwen2_vl2b_train'
-n_epochs=2
+n_epochs=1
 batch_size=4
 loss_fun = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
@@ -44,7 +44,7 @@ model = Qwen2VLForConditionalGeneration.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 processor = AutoProcessor.from_pretrained(model_id)
 
-lora_config = LoraConfig(r=8, target_modules = ['q_proj', 'v_proj'])
+lora_config = LoraConfig(r=6, target_modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'])
 peft_model = get_peft_model(model, lora_config)
 print('Trainable Parameters for PEFT model')
 peft_model.print_trainable_parameters()
@@ -52,8 +52,8 @@ peft_model.print_trainable_parameters()
 ## Setup Training and Validation Datasets
 ds_train = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='train', inference_mode=False, img_size=224)
 ds_val = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='val', inference_mode=False, img_size=224)
-# ds_train.subsample(n_subsample=12)
-# ds_val.subsample(n_subsample=12)
+ds_train.subsample(n_subsample=1000)
+# ds_val.subsample(n_subsample=64)
 print('number of training examples: {}'.format(len(ds_train)))
 print('number of validation examples: {}'.format(len(ds_val)))
 
@@ -72,7 +72,7 @@ val_loader = DataLoader(
 ## Setup Optimizer
 # use only trainable parameters
 trainable_parameters = [p for p in peft_model.parameters() if p.requires_grad]
-optimizer = AdamW(trainable_parameters, lr=1e-5)
+optimizer = AdamW(trainable_parameters, lr=1e-3)
 ## Training Loop
 print('Begin Training')
 train_losses = []
@@ -100,6 +100,7 @@ for epoch in range(n_epochs):
         loss.backward()
         optimizer.step()
         gc.collect()
+        torch.cuda.empty_cache()
     mean_train_loss = total_train_loss/total_train_examples
     print('mean training loss: {}'.format(mean_train_loss))
     train_losses.append(mean_train_loss)
@@ -121,6 +122,7 @@ for epoch in range(n_epochs):
         print('step complete')
         print(datetime.now())
         gc.collect()
+        torch.cuda.empty_cache()
     mean_val_loss = total_val_loss/total_val_examples
     val_losses.append(mean_val_loss)
     # we print both training and validation loss since we might have to scroll a while for the training loss.
