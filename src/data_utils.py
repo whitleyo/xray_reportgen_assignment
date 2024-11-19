@@ -1,5 +1,6 @@
 import os
 import json
+import numpy as np
 import torch
 from PIL import Image
 import re
@@ -58,6 +59,16 @@ class XRayImageDataset(Dataset):
     def __len__(self):
         return len(self.data_index)
 
+    def subsample(self, n_subsample=12, seed=42):
+        all_idx = np.arange(self.__len__())
+        old_json_data = self.json_data
+        new_json_data = []
+        np.random.seed(seed)
+        subs_idx = np.random.choice(a=all_idx, size=n_subsample, replace=False)
+        for idx in subs_idx:
+            new_json_data.append(old_json_data[idx])
+        self.json_data = new_json_data
+        
     def load_images(self, image_dir):
         """
         Load images, concatenate into 1 large image
