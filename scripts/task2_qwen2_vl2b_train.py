@@ -6,13 +6,16 @@ import sys
 import gc
 from datetime import datetime
 
+
+import torch
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForVision2Seq
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from transformers import pipeline
 from peft import LoraConfig
-from torch.utils.data import DataLoader
 from peft import get_peft_model
-import torch
+
 
 sys.path.append('../src')
 
@@ -25,7 +28,7 @@ json_fpath = '../results/task1_convert_validation_annotations/annotation_quiz_al
 output_dir = '../results/task2_qwen2_vl2b_train'
 n_epochs=1
 batch_size=4
-loss_fun = torch.nn.NLLLoss(ignore_index=-100)
+loss_fun = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
 ## Setup output directory
 if not os.path.exists(output_dir):
@@ -51,8 +54,8 @@ ds_train = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, 
 ds_val = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='val', inference_mode=False, img_size=224)
 ds_train.subsample(n_subsample=12)
 ds_val.subsample(n_subsample=12)
-print('number of training examples: {}'.format(len(ds_train))
-print('number of validation examples: {}'format(len(ds_val))
+print('number of training examples: {}'.format(len(ds_train)))
+print('number of validation examples: {}'.format(len(ds_val)))
 
 train_loader = DataLoader(
                 ds_train,
@@ -85,12 +88,11 @@ for epoch in range(n_epochs):
         optimizer.zero_grad()
         inputs, labels = batch
         outputs = peft_model.forward(**inputs)
-        loss = loss_fun(torch.transponse(outputs, 1, 2), labels)
+        loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
         steps += 1
-        mean_train_batch_loss = loss.item()/inputs.shape[0]
+        mean_train_batch_loss = loss.item()/labels.shape[0]
         total_train_loss += loss.item()
-        total_train_examples += inputs.shape[0]
-        train_losses.append(mean_train_loss)
+        total_train_examples += labels.shape[0]
         print("Avg batch loss at step {}: {}".format(steps, mean_train_batch_loss))
         loss.backward()
         optimizer.step()
@@ -110,9 +112,9 @@ for epoch in range(n_epochs):
         print('Step {} of validation'.format(steps))
         inputs, labels = batch
         outputs = peft_model.forward(**inputs)
-        loss = loss_fun(torch.transponse(outputs, 1, 2), labels)
+        loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
         total_val_loss += loss.item()
-        total_val_examples = inputs.shape[0]
+        total_val_examples = labels.shape[0]
         gc.collect()
     mean_val_loss = total_val_loss/total_val_examples
     val_losses.append(mean_val_loss)
@@ -120,13 +122,13 @@ for epoch in range(n_epochs):
     print('## Finished Training + Validation for Epoch {} of {} ##'.format(epoch + 1, n_epochs))
     print(datetime.now())
     print('mean training loss: {}'.format(mean_train_loss))
-    print('mean validation loss: {}'.format(mean_train_loss))
+    print('mean validation loss: {}'.format(mean_val_loss))
 
 
 ## Save Final Model
 peft_model.save_pretrained(output_dir)
 ## Save Statistics
 train_loss_output_file = os.path.join(output_dir, 'train_losses.csv')
-np.savetxt(x=np.array(train_losses), fname=train_loss_output_file)
+np.savetxt(X=np.array(train_losses), fname=train_loss_output_file)
 val_loss_output_file = os.path.join(output_dir, 'val_losses.csv')
-np.savetxt(x=np.array(val_losses), fname=val_loss_output_file)
+np.savetxt(X=np.array(val_losses), fname=val_loss_output_file)

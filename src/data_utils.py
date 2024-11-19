@@ -61,13 +61,13 @@ class XRayImageDataset(Dataset):
 
     def subsample(self, n_subsample=12, seed=42):
         all_idx = np.arange(self.__len__())
-        old_json_data = self.json_data
+        old_json_data = self.data_index
         new_json_data = []
         np.random.seed(seed)
         subs_idx = np.random.choice(a=all_idx, size=n_subsample, replace=False)
         for idx in subs_idx:
             new_json_data.append(old_json_data[idx])
-        self.json_data = new_json_data
+        self.data_index = new_json_data
         
     def load_images(self, image_dir):
         """
