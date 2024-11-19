@@ -26,7 +26,7 @@ from qwenl2_helpers import *
 top_image_dir = '../data/images'
 json_fpath = '../results/task1_convert_validation_annotations/annotation_quiz_all_modified.json'
 output_dir = '../results/task2_qwen2_vl2b_train'
-n_epochs=1
+n_epochs=2
 batch_size=4
 loss_fun = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
@@ -52,20 +52,22 @@ peft_model.print_trainable_parameters()
 ## Setup Training and Validation Datasets
 ds_train = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='train', inference_mode=False, img_size=224)
 ds_val = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='val', inference_mode=False, img_size=224)
-ds_train.subsample(n_subsample=12)
-ds_val.subsample(n_subsample=12)
+# ds_train.subsample(n_subsample=12)
+# ds_val.subsample(n_subsample=12)
 print('number of training examples: {}'.format(len(ds_train)))
 print('number of validation examples: {}'.format(len(ds_val)))
 
 train_loader = DataLoader(
                 ds_train,
                 batch_size=batch_size,
-                collate_fn=partial(collate_fn, processor=processor, tokenizer=tokenizer, device=peft_model.device)
+                collate_fn=partial(collate_fn, processor=processor, tokenizer=tokenizer, device=peft_model.device),
+                shuffle=True
             )
 val_loader = DataLoader(
                 ds_val,
                 batch_size=batch_size,
-                collate_fn=partial(collate_fn, processor=processor, tokenizer=tokenizer, device=peft_model.device)
+                collate_fn=partial(collate_fn, processor=processor, tokenizer=tokenizer, device=peft_model.device),
+                shuffle=True
             )
 ## Setup Optimizer
 # use only trainable parameters
@@ -94,6 +96,7 @@ for epoch in range(n_epochs):
         total_train_loss += loss.item()
         total_train_examples += labels.shape[0]
         print("Avg batch loss at step {}: {}".format(steps, mean_train_batch_loss))
+        print(datetime.now())
         loss.backward()
         optimizer.step()
         gc.collect()
@@ -114,7 +117,9 @@ for epoch in range(n_epochs):
         outputs = peft_model.forward(**inputs)
         loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
         total_val_loss += loss.item()
-        total_val_examples = labels.shape[0]
+        total_val_examples += labels.shape[0]
+        print('step complete')
+        print(datetime.now())
         gc.collect()
     mean_val_loss = total_val_loss/total_val_examples
     val_losses.append(mean_val_loss)
@@ -123,10 +128,14 @@ for epoch in range(n_epochs):
     print(datetime.now())
     print('mean training loss: {}'.format(mean_train_loss))
     print('mean validation loss: {}'.format(mean_val_loss))
+    del mean_val_loss
+    del mean_train_loss
+    ## Save Model for Epoch, as it turns out that the model params are in the MB for what ends up getting saved.
+    pretrain_dir = os.path.join(output_dir, 'peft_model_epoch_{}'.format(epoch + 1))
+    if not os.path.exists(pretrain_dir):
+        os.mkdir(pretrain_dir)
+    peft_model.save_pretrained(pretrain_dir)
 
-
-## Save Final Model
-peft_model.save_pretrained(output_dir)
 ## Save Statistics
 train_loss_output_file = os.path.join(output_dir, 'train_losses.csv')
 np.savetxt(X=np.array(train_losses), fname=train_loss_output_file)
