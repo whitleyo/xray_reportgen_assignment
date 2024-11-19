@@ -1,44 +1,2 @@
 `Qwen2VLRotaryEmbedding` can now be fully parameterized by passing the model config through the `config` argument. All other arguments will be removed in v4.46
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:01<00:01,  1.71s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.25it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.07it/s]
-Traceback (most recent call last):
-  File "task2_qwen2_vl2b_train.py", line 118, in <module>
-    outputs = peft_model.forward(**inputs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/peft/peft_model.py", line 812, in forward
-    return self.get_base_model()(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/transformers/models/qwen2_vl/modeling_qwen2_vl.py", line 1723, in forward
-    outputs = self.model(
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/transformers/models/qwen2_vl/modeling_qwen2_vl.py", line 1159, in forward
-    layer_outputs = decoder_layer(
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/transformers/models/qwen2_vl/modeling_qwen2_vl.py", line 906, in forward
-    hidden_states, self_attn_weights, present_key_value = self.self_attn(
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/transformers/models/qwen2_vl/modeling_qwen2_vl.py", line 839, in forward
-    attn_output = self.o_proj(attn_output)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/peft/tuners/lora/layer.py", line 584, in forward
-    result = result + lora_B(lora_A(dropout(x))) * scaling
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
-    return forward_call(*args, **kwargs)
-  File "/home/whitleyo/miniforge3/envs/xray_reportgen/lib/python3.8/site-packages/torch/nn/modules/linear.py", line 117, in forward
-    return F.linear(input, self.weight, self.bias)
-torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 20.00 MiB. GPU 0 has a total capacity of 8.00 GiB of which 0 bytes is free. Including non-PyTorch memory, this process has 17179869184.00 GiB memory in use. Of the allocated memory 13.78 GiB is allocated by PyTorch, and 878.17 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:01<00:01,  1.50s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.40it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.20it/s]

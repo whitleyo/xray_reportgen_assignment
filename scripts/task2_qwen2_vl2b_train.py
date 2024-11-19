@@ -95,10 +95,11 @@ for epoch in range(n_epochs):
         mean_train_batch_loss = loss.item()/labels.shape[0]
         total_train_loss += loss.item()
         total_train_examples += labels.shape[0]
-        print("Avg batch loss at step {}: {}".format(steps, mean_train_batch_loss))
-        print(datetime.now())
         loss.backward()
         optimizer.step()
+        print("Avg batch loss at step {}: {}".format(steps, mean_train_batch_loss))
+        print(datetime.now())
+        print("Memory Usage {}".format(torch.cuda.memory_allocated(peft_model.device)))
         gc.collect()
         torch.cuda.empty_cache()
     mean_train_loss = total_train_loss/total_train_examples
@@ -110,19 +111,20 @@ for epoch in range(n_epochs):
     total_val_examples = 0
     total_val_loss = 0
     print(datetime.now())
-    for batch in val_loader:
-        optimizer.zero_grad()
-        steps += 1
-        print('Step {} of validation'.format(steps))
-        inputs, labels = batch
-        outputs = peft_model.forward(**inputs)
-        loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
-        total_val_loss += loss.item()
-        total_val_examples += labels.shape[0]
-        print('step complete')
-        print(datetime.now())
-        gc.collect()
-        torch.cuda.empty_cache()
+    with torch.no_grad():
+        for batch in val_loader:
+            steps += 1
+            print('Step {} of validation'.format(steps))
+            inputs, labels = batch
+            outputs = peft_model.forward(**inputs)
+            loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
+            total_val_loss += loss.item()
+            total_val_examples += labels.shape[0]
+            print("Memory Usage {}".format(torch.cuda.memory_allocated(peft_model.device)))
+            print('step complete')
+            print(datetime.now())
+            gc.collect()
+            torch.cuda.empty_cache()
     mean_val_loss = total_val_loss/total_val_examples
     val_losses.append(mean_val_loss)
     # we print both training and validation loss since we might have to scroll a while for the training loss.
