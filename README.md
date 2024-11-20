@@ -1,110 +1,163 @@
->A template README.md for code accompanying a machine learning-based MICCAI paper, which is built on [paperswithcode/releasing-research-code](https://github.com/paperswithcode/releasing-research-code).
->
->Dataset, preprocessing, posting processing sections are added because these parts are very important to reproduce the results in medical image analysis community.
 
-# My Paper Title
 
-This repository is the official implementation of [My Paper Title](TBA). 
+# XRAY Report Generation
 
->Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
+This repository is an implementation of tasks related to NLP and multi-modal NLP models,
+specifically for data pertaining to the [IU-X-Ray Dataset](https://paperswithcode.com/dataset/iu-x-ray).
 
 ## Environments and Requirements
 
-- Windows/Ubuntu version
-- CPU, RAM, GPU information
-- CUDA version
-- python version
+- Ubuntu 22.04 on WSL2 on Windows 10 (10.0.1905)
+- GPU: NVIDIA GeForce RTX 2070
+- RAM: 16 GB Windows, 8GB available to WSL2
+- CUDA version: 12.4.1
+- python version: 3.8.2 (conda-forge)
 
 To install requirements:
 
 ```setup
-pip install -r requirements.txt
+# for training models and running inference
+conda env create -f xray_reportgen.yml
+# for running green_score from https://github.com/Stanford-AIMI/GREEN
+conda env create -f green_score.yml
 ```
 
->Describe how to set up the environment, e.g. pip/conda/docker commands, download datasets, etc...
+To activate:
 
-
+```
+# for training models and running inference
+conda activate xray_reportgen
+# for running green_score
+conda activate green_score
+```
 
 ## Dataset
 
-- A link to download the data (if publicly available)
-- A description about how to prepare the data (e.g., folder structures)
+[IU-X-Ray Dataset](https://paperswithcode.com/dataset/iu-x-ray)
 
-## Preprocessing
-
-A brief description of preprocessing method
-
-- cropping
-- intensity normalization
-- resampling
-
-Running the data preprocessing code:
-
-```python
-python preprocessing.py --input_path <path_to_input_data> --output_path <path_to_output_data>
+Data is organized as follows
+```
+data/
+├── annotation.json # includes data split, patient id and report findings.
+Ignore the findings in "others"
+└── images # each patient contains 1-4 images
+├── CXR1000_IM-0003
+├── 0.png
+├── 1.png
+└── 2.png
+├── ...
+└── CXR9_IM-2407
+├── 0.png
+└── 1.png
 ```
 
-## Training
+Note that the starting validation data was modified to contain original notes and not summaries converted into dictionaries. Task 1
+is to re-convert the validation data.
 
-To train the model(s) in the paper, run this command:
+##<a name="preprocessing"></a>Preprocessing
+
+Image data is resized to 224 x 224 images, padding to square.
+For MultiImage data, images are combined and resized to 224 x 224, with square padding applied.
+
+For text, data is extracted from the relevant json files, converted to a single string, and tokenized. More details for each task.
+
+## Task 1: Prompt Engineering:
+
+Used [llama](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) (meta-llama/Llama-3.2-1B-Instruct from huggingface) to generate validation labels,
+according to the following json format:
+
+```
+{
+"lung": "Lungs are mildly hypoinflated but grossly clear of focal
+airspace disease, pneumothorax, or pleural effusion. Pulmonary vasculature
+are within normal limits in size.",
+"heart": "Cardiac silhouette within normal limits in size.",
+"mediastinal": "Mediastinal contours within normal limits in size.",
+"bone": "Mild degenerative endplate changes in the thoracic spine. No
+acute bony findings.",
+"others": ""
+}
+```
+
+### Image processing:
+
+See [Preprocessing](#preprocessing) section above
+
+### Text Preprocessing:
+
+Data is fed into the user prompt, which is then passed to llama's tokenizer.
+
+### Running this Task
+
+```
+conda activate xray_reportgen
+python task1_convert_validation_annotations.py
+```
+
+### Results
+
+The system and user prompts can be 
+
+
+
+## Task 2: Fine Tuning Multimodal model
+
+Here, I tried out [QWEN-VL-2B-Instruct](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct) for fine tuning. 
+
+### Text Preprocessing
+
+The following functions are used to process text data for QWEN-VL2V model
+[prepare_message](https://github.com/whitleyo/xray_reportgen_assignment/blob/master/src/qwenl2_helpers.py#L7)
+process_vision_info from qwen_vl_utils
+
+### Training
+
+To train the model(s) in this repo, run this command:
 
 ```train
-python train.py --input-data <path_to_data> --alpha 10 --beta 20
+conda activate xray_reportgen
+cd scripts
+python task2_qwen2_vl2b_train.py
 ```
 
->Describe how to train the models, with example commands, including the full training procedure and appropriate hyper-parameters.
+Currently, I've only gotten QWEN2-VL2B to train or run inference out of QWEN2-VL-2B, llama 3.2 Vision-11B, and MOLMO.
 
+We add lora adapters (of dimension 6) to the following modules: ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'] to give flexibility at the projection stage
+before logits get calculated.
 
+The training loss is torch.nn.CrossEntropyLoss calculated for tokens matching the indices of the reference response i.e. torch.nn.CrossEntropyLoss(outputs[start_response_idx:end_response_idx], labels[start_response_idx:end_response_idx])
+This is done by making labels before start_response_idx (the start of the response) and after end_response_idx (after end of response) to -100, which signals for the loss function to ignore those indices.
 
-## Trained Models
+As it currently stands, my first run at QWEN2-VL-2B resulted in a model that just spits out a blank response. I suspect this has to do with the learning rate I picked, and the fact that most of the 
+responses are blank (and the high speed of convergence) suggests that the model just learned to call everything blank and that gets to a (very unhelpful) local minimum.
 
-You can download trained models here:
+### Trained Models
 
-- [My awesome model](https://drive.google.com/mymodel.pth) trained on the above dataset with the above code. 
+Currently no models are pushed to the internet, but if you run the training, you'll get the trained model(s) in ./results/task2_qwen2_vl2b_train.
 
->Give a link to where/how the trained models can be downloaded.
+### Inference
 
-
-
-## Inference
-
-To infer the testing cases, run this command:
-
-```python
-python inference.py --input-data <path_to_data> --model_path <path_to_trained_model> --output_path <path_to_output_data>
+```inference
+conda activate xray_reportgen
+cd scripts
+python task2_qwen2_vl2b_label_val_test.py 
 ```
 
-> Describe how to infer on testing cases with the trained models.
+### Evaluation
 
-
-
-## Evaluation
-
-To compute the evaluation metrics, run:
-
-```eval
-python eval.py --seg_data <path_to_inference_results> --gt_data <path_to_ground_truth>
-```
-
->Describe how to evaluate the inference results and obtain the reported results in the paper.
+We'd like to use the [Green Scorer](https://github.com/Stanford-AIMI/GREEN), but first we have to get the model successfully trained
 
 
 
 ## Results
 
-Our method achieves the following performance on [Brain Tumor Segmentation (BraTS) Challenge](https://www.med.upenn.edu/cbica/brats2020/)
-
-| Model name       |  DICE  | 95% Hausdorff Distance |
-| ---------------- | :----: | :--------------------: |
-| My awesome model | 90.68% |         32.71          |
-
->Include a table of results from your paper, and link back to the leaderboard for clarity and context. If your main result is a figure, include that figure and link to the command or notebook to reproduce it. 
+TODO
 
 
 ## Contributing
 
->Pick a licence and describe how to contribute to your code repository. 
+TODO
 
 ## Acknowledgement
 
-> We thank the contributors of public datasets. 
+We thank the contributors of the IU-XRAY dataset
