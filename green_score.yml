@@ -10,15 +10,4 @@ dependencies:
   - pip
   - python=3.8
   - pip:
-    - datasets
-    - einops
-    - green-score
-    - numpy
-    - pandas
-    - peft
-    - pillow
-    - torch  --index-url https://download.pytorch.org/whl/cu118
-    - qwen-vl-utils
-    - requests
-    - torchvision  --index-url https://download.pytorch.org/whl/cu118
-    - transformers 
+    - green_score
