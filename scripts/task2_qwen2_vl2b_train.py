@@ -26,11 +26,15 @@ from qwenl2_helpers import *
 top_image_dir = '../data/images'
 json_fpath = '../results/task1_convert_validation_annotations/annotation_quiz_all_modified.json'
 output_dir = '../results/task2_qwen2_vl2b_train'
-n_epochs=1
+n_epochs=2
 batch_size=4
-loss_fun = torch.nn.CrossEntropyLoss(ignore_index=-100)
+overwrite=True
+# loss_fun = torch.nn.CrossEntropyLoss(ignore_index=-100)
 
 ## Setup output directory
+if os.path.exists(output_dir) and overwrite:
+    print('removing output directory')
+    os.system('rm -rf {}'.format(output_dir))
 if not os.path.exists(output_dir):
     os.mkdir(output_dir)
 
@@ -44,7 +48,7 @@ model = Qwen2VLForConditionalGeneration.from_pretrained(
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 processor = AutoProcessor.from_pretrained(model_id)
 
-lora_config = LoraConfig(r=6, target_modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'])
+lora_config = LoraConfig(r=8, target_modules = ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'])
 peft_model = get_peft_model(model, lora_config)
 print('Trainable Parameters for PEFT model')
 peft_model.print_trainable_parameters()
@@ -52,8 +56,8 @@ peft_model.print_trainable_parameters()
 ## Setup Training and Validation Datasets
 ds_train = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='train', inference_mode=False, img_size=224)
 ds_val = XRayImageDataset(top_image_dir=top_image_dir, json_fpath=json_fpath, split='val', inference_mode=False, img_size=224)
-ds_train.subsample(n_subsample=1000)
-# ds_val.subsample(n_subsample=64)
+# ds_train.subsample(n_subsample=12)
+# ds_val.subsample(n_subsample=12)
 print('number of training examples: {}'.format(len(ds_train)))
 print('number of validation examples: {}'.format(len(ds_val)))
 
@@ -72,7 +76,7 @@ val_loader = DataLoader(
 ## Setup Optimizer
 # use only trainable parameters
 trainable_parameters = [p for p in peft_model.parameters() if p.requires_grad]
-optimizer = AdamW(trainable_parameters, lr=1e-3)
+optimizer = AdamW(trainable_parameters, lr=1e-5)
 ## Training Loop
 print('Begin Training')
 train_losses = []
@@ -85,30 +89,31 @@ for epoch in range(n_epochs):
     print(datetime.now())
     steps = 0
     total_train_loss = 0
-    total_train_examples = 0
+    # total_train_examples = 0
     for batch in train_loader:
         optimizer.zero_grad()
         inputs, labels = batch
-        outputs = peft_model.forward(**inputs)
-        loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
+        outputs = peft_model.forward(**inputs, labels=labels)
+        # loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
+        loss = outputs.loss
         steps += 1
-        mean_train_batch_loss = loss.item()/labels.shape[0]
+        # mean_train_batch_loss = loss.item()/labels.shape[0]
         total_train_loss += loss.item()
-        total_train_examples += labels.shape[0]
+        # total_train_examples += labels.shape[0]
         loss.backward()
         optimizer.step()
-        print("Avg batch loss at step {}: {}".format(steps, mean_train_batch_loss))
+        print("batch loss at step {}: {}".format(steps, loss.item()))
         print(datetime.now())
         print("Memory Usage {}".format(torch.cuda.memory_allocated(peft_model.device)))
         gc.collect()
         torch.cuda.empty_cache()
-    mean_train_loss = total_train_loss/total_train_examples
+    mean_train_loss = total_train_loss/len(train_loader)
     print('mean training loss: {}'.format(mean_train_loss))
     train_losses.append(mean_train_loss)
     ## Validation
     print('## Validation## ')
     steps = 0
-    total_val_examples = 0
+    # total_val_examples = 0
     total_val_loss = 0
     print(datetime.now())
     with torch.no_grad():
@@ -116,16 +121,17 @@ for epoch in range(n_epochs):
             steps += 1
             print('Step {} of validation'.format(steps))
             inputs, labels = batch
-            outputs = peft_model.forward(**inputs)
-            loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
+            outputs = peft_model.forward(**inputs, labels=labels)
+            loss = outputs.loss
+            # loss = loss_fun(torch.transpose(outputs.logits, 1, 2), labels)
             total_val_loss += loss.item()
-            total_val_examples += labels.shape[0]
+            # total_val_examples += labels.shape[0]
             print("Memory Usage {}".format(torch.cuda.memory_allocated(peft_model.device)))
             print('step complete')
             print(datetime.now())
             gc.collect()
             torch.cuda.empty_cache()
-    mean_val_loss = total_val_loss/total_val_examples
+    mean_val_loss = total_val_loss/len(val_loader)
     val_losses.append(mean_val_loss)
     # we print both training and validation loss since we might have to scroll a while for the training loss.
     print('## Finished Training + Validation for Epoch {} of {} ##'.format(epoch + 1, n_epochs))

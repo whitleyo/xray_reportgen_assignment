@@ -1,2 +1,2 @@
 `Qwen2VLRotaryEmbedding` can now be fully parameterized by passing the model config through the `config` argument. All other arguments will be removed in v4.46
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:01<00:01,  1.50s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.40it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.20it/s]
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:06<00:06,  6.62s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  2.86s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:06<00:00,  3.43s/it]
