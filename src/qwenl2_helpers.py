@@ -1,6 +1,6 @@
 from functools import partial
 import os
-
+import json
 from qwen_vl_utils import process_vision_info
 import torch
 
@@ -111,7 +111,7 @@ def collate_fn(batch, processor, tokenizer, device):
     return inputs, labels_ids
 
 
-def generate(image, model):
+def generate(image, model, processor):
     """
     Generate text from image
     Args:
@@ -157,7 +157,10 @@ def convert_2_json(gen_text):
         # gen_text = re.sub('```json', '', gen_text)
         # gen_text = re.sub('```', '', gen_text)
         gen_text_json = json.loads(gen_text)
-        assert type(gen_text_json) is dict
+        try:
+            assert type(gen_text_json) is dict
+        except:
+            raise TypeError('generated json is of type {}'.format(type(gen_text_json)))
         for tissue_name in ['lung', 'heart', 'bone', 'mediastinal', 'others']:
             # add emtpy entries where tissue is not included
             if not tissue_name in gen_text_json.keys():
@@ -169,7 +172,7 @@ def convert_2_json(gen_text):
         
     return gen_text_json
 
-def generate_multi_try(image, model, n_tries=100):
+def generate_multi_try(image, model, processor, n_tries=100):
     """
     Try multiple times to run generation to get json output
     Args:
@@ -182,13 +185,16 @@ def generate_multi_try(image, model, n_tries=100):
     succeeded = False
     for k in range(n_tries):
         print("attempt generation, try {}".format(k+1))
-        gen_text = generate(image, model)
+        gen_text = generate(image, model, processor)
+        print("Generated text")
+        print(gen_text)
         try:
             gen_text_json = convert_2_json(gen_text)
             succeeded = True
-            break
         except:
             print("Failed, trying another round of generation")
+        if succeeded:
+            break
     if succeeded:
         return gen_text_json
     else:

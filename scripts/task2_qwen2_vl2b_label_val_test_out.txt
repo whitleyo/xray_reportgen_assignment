@@ -1,0 +1,354 @@
+### Model Setup ###
+2024-11-21 14:41:38.175798
+Qwen2VLForConditionalGeneration(
+  (visual): Qwen2VisionTransformerPretrainedModel(
+    (patch_embed): PatchEmbed(
+      (proj): Conv3d(3, 1280, kernel_size=(2, 14, 14), stride=(2, 14, 14), bias=False)
+    )
+    (rotary_pos_emb): VisionRotaryEmbedding()
+    (blocks): ModuleList(
+      (0-31): 32 x Qwen2VLVisionBlock(
+        (norm1): LayerNorm((1280,), eps=1e-06, elementwise_affine=True)
+        (norm2): LayerNorm((1280,), eps=1e-06, elementwise_affine=True)
+        (attn): VisionSdpaAttention(
+          (qkv): Linear(in_features=1280, out_features=3840, bias=True)
+          (proj): Linear(in_features=1280, out_features=1280, bias=True)
+        )
+        (mlp): VisionMlp(
+          (fc1): Linear(in_features=1280, out_features=5120, bias=True)
+          (act): QuickGELUActivation()
+          (fc2): Linear(in_features=5120, out_features=1280, bias=True)
+        )
+      )
+    )
+    (merger): PatchMerger(
+      (ln_q): LayerNorm((1280,), eps=1e-06, elementwise_affine=True)
+      (mlp): Sequential(
+        (0): Linear(in_features=5120, out_features=5120, bias=True)
+        (1): GELU(approximate='none')
+        (2): Linear(in_features=5120, out_features=1536, bias=True)
+      )
+    )
+  )
+  (model): Qwen2VLModel(
+    (embed_tokens): Embedding(151936, 1536)
+    (layers): ModuleList(
+      (0-27): 28 x Qwen2VLDecoderLayer(
+        (self_attn): Qwen2VLSdpaAttention(
+          (q_proj): lora.Linear(
+            (base_layer): Linear(in_features=1536, out_features=1536, bias=True)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=1536, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=1536, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (k_proj): lora.Linear(
+            (base_layer): Linear(in_features=1536, out_features=256, bias=True)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=1536, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=256, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (v_proj): lora.Linear(
+            (base_layer): Linear(in_features=1536, out_features=256, bias=True)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=1536, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=256, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (o_proj): lora.Linear(
+            (base_layer): Linear(in_features=1536, out_features=1536, bias=False)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=1536, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=1536, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (rotary_emb): Qwen2VLRotaryEmbedding()
+        )
+        (mlp): Qwen2MLP(
+          (gate_proj): lora.Linear(
+            (base_layer): Linear(in_features=1536, out_features=8960, bias=False)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=1536, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=8960, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (up_proj): lora.Linear(
+            (base_layer): Linear(in_features=1536, out_features=8960, bias=False)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=1536, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=8960, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (down_proj): lora.Linear(
+            (base_layer): Linear(in_features=8960, out_features=1536, bias=False)
+            (lora_dropout): ModuleDict(
+              (default): Identity()
+            )
+            (lora_A): ModuleDict(
+              (default): Linear(in_features=8960, out_features=8, bias=False)
+            )
+            (lora_B): ModuleDict(
+              (default): Linear(in_features=8, out_features=1536, bias=False)
+            )
+            (lora_embedding_A): ParameterDict()
+            (lora_embedding_B): ParameterDict()
+            (lora_magnitude_vector): ModuleDict()
+          )
+          (act_fn): SiLU()
+        )
+        (input_layernorm): Qwen2RMSNorm((1536,), eps=1e-06)
+        (post_attention_layernorm): Qwen2RMSNorm((1536,), eps=1e-06)
+      )
+    )
+    (norm): Qwen2RMSNorm((1536,), eps=1e-06)
+    (rotary_emb): Qwen2VLRotaryEmbedding()
+  )
+  (lm_head): Linear(in_features=1536, out_features=151936, bias=False)
+)
+number of validation examples: 296
+number of test examples: 2069
+### Running Generation ###
+2024-11-21 14:41:44.469555
+Generating for validation, 1 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:41:50.187472
+Generating for validation, 2 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:41:55.706874
+Generating for validation, 3 of 296
+attempt generation, try 1
+Generated text
+{"bone": "", "heart": "Heart size is normal.", "lung": "No focal consolidation, pneumothorax, or pleural effusion.", "mediastinal": "Mediastinal contours are normal.", "others": ""}
+returned json
+{"bone": "", "heart": "Heart size is normal.", "lung": "No focal consolidation, pneumothorax, or pleural effusion.", "mediastinal": "Mediastinal contours are normal.", "others": ""}
+Finished
+2024-11-21 14:41:59.967798
+Generating for validation, 4 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:04.311908
+Generating for validation, 5 of 296
+attempt generation, try 1
+Generated text
+{"bone": "", "heart": "Heart size is normal.", "lung": "Lungs are clear. No focal consolidation, pneumothorax, or pleural effusion.", "mediastinal": "Mediastinal contours are normal.", "others": ""}
+returned json
+{"bone": "", "heart": "Heart size is normal.", "lung": "Lungs are clear. No focal consolidation, pneumothorax, or pleural effusion.", "mediastinal": "Mediastinal contours are normal.", "others": ""}
+Finished
+2024-11-21 14:42:08.082829
+Generating for validation, 6 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:12.302855
+Generating for validation, 7 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pneumothorax, or pleural effusion.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pneumothorax, or pleural effusion.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:16.602474
+Generating for validation, 8 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:20.798209
+Generating for validation, 9 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:24.968379
+Generating for validation, 10 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:29.343620
+Generating for validation, 11 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:33.586112
+Generating for validation, 12 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:37.771588
+Generating for validation, 13 of 296
+attempt generation, try 1
+Generated text
+{"bone": "Visualized osseous structures are unremarkable.", "heart": "Cardiac contours are within normal limits.", "lung": "Lungs are clear without focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "Visualized osseous structures are unremarkable.", "heart": "Cardiac contours are within normal limits.", "lung": "Lungs are clear without focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:42.501447
+Generating for validation, 14 of 296
+attempt generation, try 1
+Generated text
+{"bone": "Bony structures are intact.", "heart": "Cardiac contours are within normal limits.", "lung": "Lungs are clear. No pneumothorax or pleural effusion.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "Bony structures are intact.", "heart": "Cardiac contours are within normal limits.", "lung": "Lungs are clear. No pneumothorax or pleural effusion.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:47.778344
+Generating for validation, 15 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:53.789632
+Generating for validation, 16 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:42:59.441494
+Generating for validation, 17 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:04.101867
+Generating for validation, 18 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:08.664757
+Generating for validation, 19 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:13.423411
+Generating for validation, 20 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:18.199931
+Generating for validation, 21 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:22.689421
+Generating for validation, 22 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:26.983931
+Generating for validation, 23 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:31.709748
+Generating for validation, 24 of 296
+attempt generation, try 1
+Generated text
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+returned json
+{"bone": "No acute bony abnormality.", "heart": "Cardiac contours are within normal limits.", "lung": "No focal consolidation, pleural effusion, or pneumothorax.", "mediastinal": "Mediastinal contours are within normal limits.", "others": ""}
+Finished
+2024-11-21 14:43:36.293956
+Generating for validation, 25 of 296
+attempt generation, try 1

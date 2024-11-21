@@ -20,11 +20,12 @@ from qwen_vl_utils import process_vision_info
 sys.path.append('../src')
 
 from data_utils import *
+from qwenl2_helpers import *
 
 ## General Settings
 top_image_dir = '../data/images'
 json_fpath = '../results/task1_convert_validation_annotations/annotation_quiz_all_modified.json'
-# peft_model_dir = '../results/task2_qwen2_vl2b_train/peft_model_epoch_2'
+peft_model_dir = '../results/task2_qwen2_vl2b_train/peft_model_epoch_2'
 output_dir = '../results/task2_qwen2_vl2b_label_val_test'
 
 ## Setup output directory
@@ -38,7 +39,7 @@ model_id = "Qwen/Qwen2-VL-2B-Instruct"
 model = Qwen2VLForConditionalGeneration.from_pretrained(
     model_id, torch_dtype="auto", device_map="cuda"
 )
-# model.load_adapter(peft_model_dir)
+model.load_adapter(peft_model_dir)
 print(model)
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 processor = AutoProcessor.from_pretrained(model_id)
@@ -65,7 +66,7 @@ for i in range(len(ds_val)):
     print("Generating for validation, {} of {}".format(i+1, len(ds_val)))
     img, _ = ds_val[i]
     id_i = ds_val.data_index[i]['id']
-    gen_text_json = generate_multi_try(img, model)
+    gen_text_json = generate_multi_try(img, model, processor)
     print("returned json")
     print(json.dumps(gen_text_json))
     json_add = {
@@ -80,7 +81,7 @@ for i in range(len(ds_test)):
     print("Generating for test set, {} of {}".format(i+1, len(ds_test)))
     img, _ = ds_test[i]
     id_i = ds_test.data_index[i]['id']
-    gen_text_json = generate_multi_try(img, model)
+    gen_text_json = generate_multi_try(img, model, processor)
     print("returned json")
     print(json.dumps(gen_text_json))
     json_add = {
