@@ -96,7 +96,70 @@ python task1_convert_validation_annotations.py
 
 ### Results
 
-The system and user prompts can be 
+The system and user prompts can be found in the following [script](https://github.com/whitleyo/xray_reportgen_assignment/blob/master/scripts/task1_convert_validation_annotations.py)
+
+Overall, the results are range from somewhat incorrect in placement of tissue results but with proper formatting to 
+
+Examples:
+
+1.
+```
+original report:
+Heart size is enlarged. The aorta is unfolded. Otherwise the mediastinal contour is normal.
+There are streaky bibasilar opacities. There are no nodules or masses. No visible pneumothorax. No visible pleural fluid.
+The XXXX are grossly normal. There is no visible free intraperitoneal air under the diaphragm.
+
+json extraction result:
+
+{
+  'lung': '',
+  'heart': 'The aorta is unfolded',
+  'bone': 'The XXXX are grossly normal',
+  'mediastinal': 'Mediastinal contour is normal',
+  'others': 'No visible pneumothorax, no visible pleural fluid, streaky bibasilar opacities, no nodules or masses, free intraperitoneal air under the diaphragm.'
+}
+```
+
+2.
+```
+original report:
+The heart is mildly enlarged. The mediastinal contours are stable. The lungs are clear.
+
+json extraction result:
+
+{
+  'lung': 'The lungs are clear.',
+  'heart': 'The heart is mildly enlarged',
+  'mediastinal': 'The mediastinal contours are stable',
+  'bone': '',
+  'others': ''
+}
+```
+
+3.
+```
+original report: 2 images. Heart size and pulmonary vascular engorgement appear within limits of normal.
+Mediastinal contour is unremarkable. No focal consolidation, pleural effusion, or pneumothorax identified. No convincing acute bony findings.
+
+json extraction result:
+
+{
+  'lung': 'No focal consolidation, pleural effusion, or pneumothorax identified.',
+  'heart': 'Heart size within normal limits',
+  'bone': 'No acute bony findings.',
+  'mediastinal': 'Mediastinal contour is unremarkable.',
+  'others': 'No focal air space opacity to suggest pneumonia.'
+}
+```
+
+It should also be noted that llama did not return correctly formated json output 100% of the time, and so I had to do a loop where output is generated,
+cleaned for easy to fix items such as \```json and \``` on the ends, and often adding a curly brace (}) at the end (otherwise llama would, for some samples,
+not give correctly formatted json in 100 tries even with otherwise pretty correct looking json output).
+
+__Conclusion__
+
+Llama 3.2-1B Instruct is OK at handling formatting but without doing any further fine tuning I'm afraid this is the best I'll be able to do here.
+I tried a variety of simpler and more complex prompts than the one provided, and at some point adding examples seemed to saturate in terms of performance.
 
 
 
@@ -149,7 +212,7 @@ We'd like to use the [Green Scorer](https://github.com/Stanford-AIMI/GREEN), but
 
 
 
-## Results
+### Results
 
 TODO
 
