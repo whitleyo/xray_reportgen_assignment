@@ -3,46 +3,7 @@ import os
 import json
 from qwen_vl_utils import process_vision_info
 import torch
-
-output_json_format = """
-{
- \"lung\": \"summary of lung related findings, empty if no findings\",
- \"heart\": \"summary of heart related findings, empty if no findings\",
- \"bone\": \"summary of bone related findings, empty if no findings\",
- \"mediastinal\": \"summary of mediastinal related findings, empty if no findings\",
- \"others\": \"summary of any findings not related to lung, heart, bone, or mediastinal\"
-}
-"""
-
-def prep_message(img, output_text=None, output_format=output_json_format):
-    """
-    Prepare Message for QWEN-VL-2B
-    Args:
-        img: image, as accessed from XRayImageDataset object (see data_utils.py), in PIL format
-        output_text: string. output text that will be passed to model and tokenized into labels as part of the full message
-        output_format: string, output format. defaults to output_json_format
-    returns: list of dicts to be used as message input for model
-    """
-    message =   [
-                    {
-                        "role": "user",
-                        "content": [
-                                {"type": "image", "image": img},
-                                {"type": "text", "text": "Summarize the input image(s) in the following json format {}".format(output_json_format)},
-                            ],
-                    }, 
-                ]
-    if output_text is not None:
-        try:
-            assert type(output_text) is str
-        except:
-            raise TypeError('Expected str if output_text is not None, got {}'.format(type(output_text)))
-        message.append({
-                        "role": "assistant", 
-                        "content": output_text
-                        })
-    
-    return message
+from input_prep import *
 
 def get_start_end_idx(l, tokenizer):
     """
@@ -70,15 +31,14 @@ def get_start_end_idx(l, tokenizer):
                     break  # Move to the next start after finding the end
 
     return list(zip(start_indexes, end_indexes))
-    
 
 def collate_fn(batch, processor, tokenizer, device):
     """
     Collate Function for Batch Processing
     Args:
         batch: iterable of items from XRayDataset
-        processor: processor function for QWEN-VL-2B
-        tokenizer: tokenizer function for QWEN-VL-2B
+        processor: processor function
+        tokenizer: tokenizer function
         device: model device
     returns: inputs and labels ids
     """

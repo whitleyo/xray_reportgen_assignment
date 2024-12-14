@@ -51,10 +51,10 @@ class XRayImageDataset(Dataset):
         if self.inference_mode is False:
             # this assumes that there's a report in the json entry
             text = json.dumps(json_entry['report'])
-            return image_return, text
+            return image_return, id_pull, text
         else:
             # for generic queries
-            return image_return
+            return image_return, id_pull
 
     def __len__(self):
         return len(self.data_index)
