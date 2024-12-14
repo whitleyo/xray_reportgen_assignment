@@ -7,29 +7,17 @@ specifically for data pertaining to the [IU-X-Ray Dataset](https://paperswithcod
 
 ## Environments and Requirements
 
-- Ubuntu 22.04 on WSL2 on Windows 10 (10.0.1905)
-- GPU: NVIDIA GeForce RTX 2070
-- RAM: 16 GB Windows, 8GB available to WSL2
-- CUDA version: 12.4.1
-- python version: 3.8.2 (conda-forge)
+Google Colab
 
-To install requirements:
+Tesla T4 GPU (14GB VRAM).
 
-```setup
-# for training models and running inference
-conda env create -f xray_reportgen.yml
-# for running green_score from https://github.com/Stanford-AIMI/GREEN
-conda env create -f green_score.yml
-```
+Note, you'll need a google colab pro plus subscription to reliably run this. I've tried before
+using my own laptop (8GB VRAM) which doesn't cut it for training anything but QWEN-VL-2B or a similarly small
+model, and free google colab will randomly cut you out mid training/fine-tuning, which kind of nixes
+its usefulness.
 
-To activate:
-
-```
-# for training models and running inference
-conda activate xray_reportgen
-# for running green_score
-conda activate green_score
-```
+In a future iteration I might just consider
+using google cloud or azure but for the sake of getting this done we'll use google colab pro for now.
 
 ## Dataset
 
@@ -63,19 +51,16 @@ For text, data is extracted from the relevant json files, converted to a single 
 
 ## Task 1: Prompt Engineering:
 
-Used [llama](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct) (meta-llama/Llama-3.2-1B-Instruct from huggingface) to generate validation labels,
+Used [llama]([unsloth/Meta-Llama-3.1-8B](https://huggingface.co/unsloth/Meta-Llama-3.1-8B)) to generate validation labels,
 according to the following json format:
 
 ```
 {
-"lung": "Lungs are mildly hypoinflated but grossly clear of focal
-airspace disease, pneumothorax, or pleural effusion. Pulmonary vasculature
-are within normal limits in size.",
-"heart": "Cardiac silhouette within normal limits in size.",
-"mediastinal": "Mediastinal contours within normal limits in size.",
-"bone": "Mild degenerative endplate changes in the thoracic spine. No
-acute bony findings.",
-"others": ""
+    'lung': 'summary of lung category related findings or leave as empty string if no lung related findings.',
+    'heart': 'summary of heart category or leave as empty string if no heart related findings.',
+    'bone': 'summary of bone category related findings or leave as empty string if no bone related findings.',
+    'mediastinal': 'summary of mediastinal category related findings or leave as empty string if no mediastinal related findings.',
+    'others': 'summary of any other findings that are NOT lung related, NOT heart related, NOT bone related, NOT mediastinal related. Leave as empty string if no findings.'
 }
 ```
 
@@ -89,127 +74,106 @@ Data is fed into the user prompt, which is then passed to llama's tokenizer.
 
 ### Running this Task
 
-```
-conda activate xray_reportgen
-python task1_convert_validation_annotations.py
-```
+Run the following notebook: [notebooks/Task1_Llama-3.1_8b_get_validation_labels.ipynb](https://github.com/whitleyo/xray_reportgen_assignment/blob/master/notebooks/Task1_Llama-3.1_8b_get_validation_labels.ipynb)
+
+The prompt for json report generation is included in that notebook.
 
 ### Results
 
-The system and user prompts can be found in the following [script](https://github.com/whitleyo/xray_reportgen_assignment/blob/master/scripts/task1_convert_validation_annotations.py)
-
-Overall, the results are range from somewhat incorrect in placement of tissue results but with proper formatting to 
+Overall, the results appear to be sane enough perusing through a few examples. Occasionally there might be something missed, or something
+along the lines of a mediastinal result being placed with a cardiac result, which is perhaps not surprising given that mediastinal results
+often occur in context with cardiac findings.
 
 Examples:
 
 1.
-```
-original report:
-Heart size is enlarged. The aorta is unfolded. Otherwise the mediastinal contour is normal.
-There are streaky bibasilar opacities. There are no nodules or masses. No visible pneumothorax. No visible pleural fluid.
-The XXXX are grossly normal. There is no visible free intraperitoneal air under the diaphragm.
 
-json extraction result:
-
+original report: The trachea is midline. The heart XXXX is large, unchanged from prior exam. Slightly widened mediastinum, secondary to cardiomegaly and a tortuous aorta, is accentuated by AP portable technique. There are low lung volumes causing bibasilar atelectasis and bronchovascular crowding. The lungs do not demonstrate focal infiltrate or effusion. There is no pneumothorax. The visualized bony structures reveal no acute abnormalities.
+json extraction result: 
 {
-  'lung': '',
-  'heart': 'The aorta is unfolded',
-  'bone': 'The XXXX are grossly normal',
-  'mediastinal': 'Mediastinal contour is normal',
-  'others': 'No visible pneumothorax, no visible pleural fluid, streaky bibasilar opacities, no nodules or masses, free intraperitoneal air under the diaphragm.'
-}
-```
-
-2.
-```
-original report:
-The heart is mildly enlarged. The mediastinal contours are stable. The lungs are clear.
-
-json extraction result:
-
-{
-  'lung': 'The lungs are clear.',
-  'heart': 'The heart is mildly enlarged',
-  'mediastinal': 'The mediastinal contours are stable',
-  'bone': '',
+  'lung': 'Lungs do not demonstrate focal infiltrate or effusion. There is no pneumothorax. The visualized bony structures reveal no acute abnormalities.', 
+  'heart': 'The heart XXXX is large, unchanged from prior exam. Slightly widened mediastinum, secondary to cardiomegaly and a tortuous aorta, is accentuated by AP portable technique.', 
+  'bone': '', 
+  'mediastinal': '', 
   'others': ''
 }
-```
+
+2.
+original report: Cardiac and mediastinal contours are within normal limits. The lungs are clear. Mild prominence left hilar contour. Bony structures are intact.
+json extraction result:
+{
+  'lung': 'The lungs are clear. Mild prominence left hilar contour.',
+  'heart': 'Cardiac and mediastinal contours are within normal limits.',
+  'bone': 'Bony structures are intact',
+  'mediastinal': 'Mediastinal contours are within normal limits.',
+  'others': ''
+}
 
 3.
-```
-original report: 2 images. Heart size and pulmonary vascular engorgement appear within limits of normal.
-Mediastinal contour is unremarkable. No focal consolidation, pleural effusion, or pneumothorax identified. No convincing acute bony findings.
-
+original report: The heart is normal size. The mediastinum is unremarkable. A tortuous, calcified thoracic aorta is present. The lungs are hyperexpanded, consistent with emphysema. There is no pleural effusion, pneumothorax, or focal airspace disease. The XXXX are unremarkable.
 json extraction result:
-
 {
-  'lung': 'No focal consolidation, pleural effusion, or pneumothorax identified.',
-  'heart': 'Heart size within normal limits',
-  'bone': 'No acute bony findings.',
-  'mediastinal': 'Mediastinal contour is unremarkable.',
-  'others': 'No focal air space opacity to suggest pneumonia.'
-}
-```
+  'lung': 'The lungs are hyperexpanded, consistent with emphysema. There is no pleural effusion, pneumothorax, or focal airspace disease.',
+  'heart': 'The heart is normal size',
+  'bone': '',
+  'mediastinal': 'A tortuous, calcified thoracic aorta is present.',
+  'others': 'The XXXX are unremarkable.'
+  }
 
 It should also be noted that llama did not return correctly formated json output 100% of the time, and so I had to do a loop where output is generated,
 cleaned for easy to fix items such as \```json and \``` on the ends, and often adding a curly brace (}) at the end (otherwise llama would, for some samples,
-not give correctly formatted json in 100 tries even with otherwise pretty correct looking json output).
+not give correctly formatted json in 100 tries even with otherwise pretty correct looking json output). It should be also noted that llama was fairly probabilistic
+in whether or not it returned correctly formatted output or returned code to generate said output.
 
 __Conclusion__
 
-Llama 3.2-1B Instruct is OK at handling formatting but without doing any further fine tuning I'm afraid this is the best I'll be able to do here.
+Llama 3.2-8B Instruct is OK at handling formatting but without doing any further fine tuning I'm afraid this is the best I'll be able to do here.
 I tried a variety of simpler and more complex prompts than the one provided, and at some point adding examples seemed to saturate in terms of performance.
 
 
 
 ## Task 2: Fine Tuning Multimodal model
 
-Here, I tried out [QWEN-VL-2B-Instruct](https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct) for fine tuning. 
+Here, I tried out [Llama 3.2-Vision-11B](https://huggingface.co/unsloth/Llama-3.2-11B-Vision) for fine tuning. 
 
 ### Text Preprocessing
 
-The following functions are used to process text data for QWEN-VL2V model
-[prepare_message](https://github.com/whitleyo/xray_reportgen_assignment/blob/master/src/qwenl2_helpers.py#L7)
-process_vision_info from qwen_vl_utils
+The following function was used for text conversion:
+
+```
+def convert_to_conversation(img, response, output_format=output_json_format):
+    instruction="Summarize the input image(s) in the following json format {}".format(output_json_format)
+    conversation = [
+        { "role": "user",
+          "content" : [
+            {"type" : "text",  "text"  : instruction},
+            {"type" : "image", "image" : img} ]
+        },
+        { "role" : "assistant",
+          "content" : [
+            {"type" : "text",  "text"  : response} ]
+        },
+    ]
+    return { "messages" : conversation }
+```
+
+It was imported from https://github.com/whitleyo/xray_reportgen_assignment/blob/master/src/llama_3_2_vision_unsloth_helpers.py
 
 ### Training
 
-To train the model(s) in this repo, run this command:
-
-```train
-conda activate xray_reportgen
-cd scripts
-python task2_qwen2_vl2b_train.py
-```
-
-Currently, I've only gotten QWEN2-VL2B to train or run inference out of QWEN2-VL-2B, llama 3.2 Vision-11B, and MOLMO.
-
-We add lora adapters (of dimension 6) to the following modules: ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj'] to give flexibility at the projection stage
-before logits get calculated.
-
-The training loss is torch.nn.CrossEntropyLoss calculated for tokens matching the indices of the reference response i.e. torch.nn.CrossEntropyLoss(outputs[start_response_idx:end_response_idx], labels[start_response_idx:end_response_idx])
-This is done by making labels before start_response_idx (the start of the response) and after end_response_idx (after end of response) to -100, which signals for the loss function to ignore those indices.
-
-As it currently stands, my first run at QWEN2-VL-2B resulted in a model that just spits out a blank response. I suspect this has to do with the learning rate I picked, and the fact that most of the 
-responses are blank (and the high speed of convergence) suggests that the model just learned to call everything blank and that gets to a (very unhelpful) local minimum.
+To run fine tuning for llama 3.2-vision-11B, run the following notebook: [notebooks/Task2_part1_Llama-3.2_vision_11b_fine_tune.ipynb](https://github.com/whitleyo/xray_reportgen_assignment/blob/master/notebooks/Task2_part1_Llama-3.2_vision_11b_fine_tune.ipynb)
 
 ### Trained Models
 
-Currently no models are pushed to the internet, but if you run the training, you'll get the trained model(s) in ./results/task2_qwen2_vl2b_train.
+TODO
 
 ### Inference
 
-```inference
-conda activate xray_reportgen
-cd scripts
-python task2_qwen2_vl2b_label_val_test.py 
-```
+TODO
 
 ### Evaluation
 
-We'd like to use the [Green Scorer](https://github.com/Stanford-AIMI/GREEN), but first we have to get the model successfully trained
-
+TODO
 
 
 ### Results
